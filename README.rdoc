@@ -1,0 +1,9 @@
+= Dyno Battery
+
+Rails gem to see how many dynos you need to run your app
+
+Steps for building
+rake manifest
+rake build_gemspec
+gem build dynobattery.gemspec
+gem push dynobattery-0.1.1.gem
