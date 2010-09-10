@@ -1,9 +1,3 @@
-# require 'rubygems'  
-# require 'rake'  
-# require 'echoe'
-require 'net/http'
-require 'heroku'
-
 class DynoBattery
   def initialize(app)
     @app = app
@@ -14,11 +8,13 @@ class DynoBattery
   end
   
   def _call(env)
-    if defined?(DYNO_DOMAIN)
-      if env["PATH_INFO"] =~ /^\/add_dyno/
+    if defined?(DYNOBATTERY_ID)
+      req = Rack::Request.new(env)
+      @params = req.params
+      if env["PATH_INFO"] =~ /^\/add_dyno/ and @params["id"] == DYNOBATTERY_ID
         add_dyno
         [200, {"Content-Type" => "text/plain"}, ["Dyno +1"]]
-      elsif env["PATH_INFO"] =~ /^\/remove_dyno/
+      elsif env["PATH_INFO"] =~ /^\/remove_dyno/ and @params["id"] == DYNOBATTERY_ID
         remove_dyno
         [200, {"Content-Type" => "text/plain"}, ["Dyno -1"]]
       else
@@ -29,12 +25,7 @@ class DynoBattery
         start = Time.now  
         status, headers, response = @app.call(env)  
         stop = Time.now
-        if defined?(DYNO_USER) && defined?(DYNO_PASSWORD)
-          get_dynos
-          http.post("/heroku","name=#{DYNO_DOMAIN}&date=#{start.to_s}&time=#{"%10.6f" % (stop - start)}&dyno=#{@heroku_app[:dynos]}")
-        else
-          http.post("/heroku","name=#{DYNO_DOMAIN}&date=#{start.to_s}&time=#{"%10.6f" % (stop - start)}")
-        end
+        http.post("/heroku","name=#{DYNOBATTERY_ID}&date=#{start.to_s}&time=#{"%10.6f" % (stop - start)}&dyno=#{env['HTTP_X_HEROKU_DYNOS_IN_USE']}")
         [status, headers, response]
       end
     else
@@ -44,7 +35,7 @@ class DynoBattery
   
   
 
-  
+  # deprecated for env["HTTP_X_HEROKU_DYNOS_IN_USE"]
   def get_dynos
     setup_heroku_client
     @heroku_app = @heroku.info(DYNO_DOMAIN)
